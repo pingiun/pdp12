@@ -1,0 +1,35 @@
+body {
+    background-color: rgb(28, 28, 28);
+    padding: 0;
+    margin: 0;
+}
+
+input[type="checkbox"] {
+    appearance: none;
+    background-repeat: no-repeat;
+    aspect-ratio: 191/353;
+    width: 100%;
+}
+
+.lightgreen {
+    background-image: url(resources/lightgreen-off.svg);
+}
+
+.lightgreen:checked {
+    background-image: url(resources/lightgreen-on.svg);
+}
+
+.darkgreen {
+    background-image: url(resources/darkgreen-off.svg);
+}
+
+.darkgreen:checked {
+    background-image: url(resources/darkgreen-on.svg);
+}
+
+.row {
+    padding-right: .8%;
+    display: grid;
+    grid-template-columns: repeat(32, 1fr);
+    background-color: rgb(233, 233, 210);
+}
