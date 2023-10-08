@@ -9,5 +9,8 @@ frontend/dist: frontend/node_modules pdp12_web/pkg $(FRONTEND_FILES)
 frontend/node_modules: frontend/package.json frontend/package-lock.json
 	cd frontend/ && npm install
 
-pdp12_web/pkg: pdp12_web/src/lib.rs $(LIB_FILES)
-	cd pdp12_web/ && wasm-pack build
+node_modules: package.json package-lock.json
+	npm install
+
+pdp12_web/pkg: pdp12_web/src/lib.rs $(LIB_FILES) node_modules
+	npm run build-rust
