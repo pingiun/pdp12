@@ -1,5 +1,10 @@
+#![warn(clippy::all)]
+#![allow(clippy::unusual_byte_groupings)]
+#![allow(clippy::assign_op_pattern)]
+
 mod consts;
 pub mod eight_mode;
+pub mod devices;
 mod emulate;
 mod memory;
 
@@ -16,7 +21,7 @@ where
     let mut memory = [0u16; 4096];
     for line in code.lines() {
         pointer = pointer & MASK_12BIT as usize;
-        let mut parts: Vec<&str> = line.split(" ").collect();
+        let mut parts: Vec<&str> = line.split(' ').collect();
         // Assembler directives
         if parts[0].chars().all(|c| c.is_ascii_digit()) {
             // Old style assembly, address then instr: 0000 HLT
@@ -66,14 +71,13 @@ where
         ];
         if let Some(pos) = pos {
             let mut instr = instructions[pos];
-            let addr;
-            if parts.len() == 3 && parts[1].to_uppercase() == "I" {
+            let addr = if parts.len() == 3 && parts[1].to_uppercase() == "I" {
                 instr |= 0b0000_000_100_000_000;
-                addr = u16::from_str_radix(parts[2], 8).unwrap();
+                u16::from_str_radix(parts[2], 8).unwrap()
             } else {
                 assert!(parts.len() == 2);
-                addr = u16::from_str_radix(parts[1], 8).unwrap();
-            }
+                u16::from_str_radix(parts[1], 8).unwrap()
+            };
             if addr < 0o200 {
                 instr |= addr;
             } else {
@@ -118,10 +122,52 @@ JMP I 350",
         );
 
         let mut mem = Memory::with_code(code);
-        let mut state = State::default();
-        state.pc = 0o200;
+        let mut state = State {pc: 0o200, ..Default::default() };
+        let mut devices = devices::Devices::default();
+        state.running = true;
+
         loop {
-            state = step(state, &mut mem);
+            state = step(state, &mut mem, &mut devices);
+            if !state.running {
+                break;
+            }
         }
+    }
+
+    #[test]
+    fn can_print() {
+        let mut mem = Memory::default();
+        let mut state = State {pc: 0o200, ..Default::default() };
+        let mut devices = devices::Devices::new_with_asr33();
+
+        state.rsw = 0o301;
+        state.running = true;
+        mem.write(0o200, 0o7604); // LAS, load AC with switch register
+        mem.write(0o201, 0o6046); // LPC, load print buffer with AC and clear flag
+
+        state = step(state, &mut mem, &mut devices);
+        assert!(state.acc == 0o301);
+
+        state = step(state, &mut mem, &mut devices);
+        let tty = devices[TTY_SELECTOR as usize].as_mut().unwrap();
+        let tty = tty.downcast_mut::<devices::Tty>().unwrap();
+        assert!(tty.get_key() == Some(0o301));
+    }
+
+    #[test]
+    fn can_type() {
+        let mut mem = Memory::default();
+        let mut state = State {pc: 0o200, ..Default::default() };
+        let mut devices = devices::Devices::new_with_asr33();
+
+        let keyboard = devices[KEYBOARD_SELECTOR as usize].as_mut().unwrap();
+        let keyboard: &mut devices::Keyboard = keyboard.downcast_mut::<devices::Keyboard>().unwrap();
+        keyboard.set_key(0o301);
+
+        state.running = true;
+        mem.write(0o200, 0o6036); // LPC, load print buffer with AC and clear flag
+
+        state = step(state, &mut mem, &mut devices);
+        assert_eq!(state.acc, 0o301);
     }
 }

@@ -55,6 +55,28 @@ function loadMem() {
   }
 }
 
+function mapKey(id) {
+  if (id.startsWith("letter_")) {
+    const ascii = id.replace("letter_", "").toUpperCase();
+    return ascii.codePointAt(0) + 0o200;
+  }
+  if (id.startsWith("number_")) {
+    const ascii = id.replace("number_", "");
+    return ascii.codePointAt(0) + 0o200;
+  }
+  return id;
+}
+
+function lower(element) {
+  element.style.transform = "translate(0px, 45px)";
+  element.style.transition = "transform 0.1s ease-in-out";
+}
+
+function raise(element) {
+  element.style.transform = "translate(0px, 0px)";
+  element.style.transition = "transform 0.1s ease-in-out";
+}
+
 async function main() {
   function examine(step = false) {
     let lsBits = getLsBits();
@@ -68,8 +90,23 @@ async function main() {
   }
   function key_do() {
     let lsBits = getLsBits();
-    machine.key_do(lsBits);
+    let rsBits = getRsBits();
+    machine.key_do(lsBits, rsBits);
     saveMem(machine);
+  }
+  function add_char() {
+    const char = machine.get_char();
+    if (char === undefined) {
+      console.log("No char to add");
+      return;
+    }
+    const printer = document.getElementById("printer");
+    // Check if line is full
+    let line = printer.lastChild;
+    if (line.textContent.length >= 78) {
+      line = printer.appendChild(document.createElement("pre"));
+    }
+    line.textContent += String.fromCharCode(char - 0o200);
   }
   const decal = await svgDecal("decal");
 
@@ -134,6 +171,7 @@ async function main() {
       }
       if (this.id === "do") {
         key_do();
+        add_char();
       }
       if (this.id === "start_ls") {
         // Start machine
@@ -197,6 +235,46 @@ async function main() {
       document.getElementById("exam").checked = false;
       clickAudios[Math.floor(Math.random() * 6)].play();
     }
+  });
+
+  const keyboard = await svgDecal("tty33");
+  let shiftStatus = false;
+  let controlStatus = false;
+  keyboard.querySelectorAll("a").forEach((elem) =>
+    elem.addEventListener("click", function (event) {
+      console.log("Clicked", mapKey(this.id));
+      if (this.id.endsWith("shift")) {
+        shiftStatus = !shiftStatus;
+        for (const elem of ["leftshift", "rightshift"]) {
+          const shift = keyboard.getElementById(elem);
+          if (shiftStatus) {
+            lower(shift);
+          } else {
+            raise(shift);
+          }
+        }
+        return;
+      }
+      if (this.id == "ctrl") {
+        controlStatus = !controlStatus;
+        if (controlStatus) {
+          lower(elem);
+        } else {
+          raise(elem);
+        }
+        return;
+      }
+      lower(elem);
+      setTimeout(() => {
+        raise(elem);
+      }, 200);
+    })
+  );
+  const printerInner = document.getElementById("printer-inner");
+  const paperShadowTop = document.getElementById("paper-shadow-top");
+  printerInner.addEventListener("scroll", function (event) {
+    const opacity = Math.min(0.4, this.scrollTop / 100);
+    paperShadowTop.style.background = `linear-gradient(180deg, rgba(28, 28, 28, ${opacity}) 0%, rgba(255, 255, 230, 0) 100%)`;
   });
 }
 

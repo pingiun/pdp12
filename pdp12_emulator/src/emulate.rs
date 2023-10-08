@@ -1,32 +1,65 @@
-use crate::{memory::Memory, consts::{MASK_12BIT}, eight_mode};
+use crate::{
+    consts::MASK_12BIT,
+    devices::{Device, Devices, Keyboard, Tty},
+    eight_mode,
+    memory::Memory,
+};
 
 pub struct PDP12 {
     pub memory: Memory,
     generations: Vec<(State, usize)>,
     generation: usize,
-    devices: [Option<Box<dyn Device>>; 64],
+    devices: Devices,
+}
+
+impl Default for PDP12 {
+    fn default() -> Self {
+        let mut this = Self::new(Default::default(), Default::default());
+        this.register_device(Keyboard::new());
+        this.register_device(Tty::new());
+        this
+    }
 }
 
 impl PDP12 {
     pub fn new(state: State, memory: Memory) -> Self {
-        const INIT: Option<Box<dyn Device>> = None;
         Self {
             memory,
             generations: vec![(state, 0)],
             generation: 0,
-            devices: [INIT; 64]
+            devices: Default::default(),
         }
+    }
+
+    pub fn register_device<D: Device>(&mut self, device: D) {
+        assert!(
+            device.get_selector() < 64,
+            "Selector must be a 6-bit number"
+        );
+        let selector = device.get_selector();
+        self.devices[selector as usize] = Some(Box::new(device));
+    }
+
+    pub fn operate_device<F, D>(&mut self, selector: u8, operate: F) -> Result<(), ()>
+    where
+        F: FnOnce(&mut D),
+        D: Device + 'static,
+    {
+        let device = self.devices[selector as usize].as_mut().ok_or(())?;
+        let device = device.as_mut().downcast_mut::<D>().ok_or(())?;
+        operate(device);
+        Ok(())
     }
 
     pub fn get_state(&self) -> (State, &Memory) {
         (self.generations.last().unwrap().0, &self.memory)
     }
 
-    pub fn change_state(&mut self, f: impl FnOnce(State, &mut Memory) -> State) -> Result<(), ()> {
+    pub fn change_state(&mut self, f: impl FnOnce(State, &mut Memory, &mut Devices) -> State) -> Result<(), ()> {
         if self.generation != self.generations.len() - 1 {
             return Err(());
         }
-        let newstate = f(self.generations.last().unwrap().0, &mut self.memory);
+        let newstate = f(self.generations.last().unwrap().0, &mut self.memory, &mut self.devices);
         self.generations.push((newstate, self.memory.generation()));
         self.generation = self.generations.len() - 1;
         Ok(())
@@ -34,7 +67,11 @@ impl PDP12 {
 
     pub fn step(&mut self) {
         if self.generation == self.generations.len() - 1 {
-            let newstate = step(self.generations.last().unwrap().0, &mut self.memory);
+            let newstate = step(
+                self.generations.last().unwrap().0,
+                &mut self.memory,
+                &mut self.devices,
+            );
             self.generations.push((newstate, self.memory.generation()));
             self.generation = self.generations.len() - 1;
         } else {
@@ -86,36 +123,7 @@ pub fn fetch(state: State, memory: &mut Memory) -> (u16, State) {
 }
 
 #[must_use]
-pub fn step(state: State, memory: &mut Memory) -> State {
+pub fn step(state: State, memory: &mut Memory, devices: &mut Devices) -> State {
     let (instr, state) = fetch(state, memory);
-    eight_mode::exec(instr, state, memory)
-}
-
-trait Device<T> {
-    const SELECTOR: u8;
-
-    fn iot(&mut self, state: State, memory: &mut Memory) -> State;
-
-    fn get_info(&mut self) -> T;
-    fn write_info(&mut self, info: T);
-}
-
-struct Keyboard {
-    buffer: u8,
-}
-
-impl Device<u8> for Keyboard {
-    const SELECTOR: u8 = 0b00_000_000;
-
-    fn iot(&mut self, state: State, memory: &mut Memory) -> State {
-        todo!()
-    }
-
-    fn get_info(&mut self) -> u8 {
-        self.buffer
-    }
-
-    fn write_info(&mut self, info: u8) {
-        self.buffer = info;
-    }
+    eight_mode::exec(instr, state, memory, devices)
 }

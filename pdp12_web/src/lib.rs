@@ -1,6 +1,6 @@
-use core::slice;
+#![allow(clippy::unusual_byte_groupings)]
 
-use pdp12_emulator::{Memory, MASK_12BIT, PDP12};
+use pdp12_emulator::{Memory, MASK_12BIT, PDP12, KEYBOARD_SELECTOR, devices::{Keyboard, Tty}, TTY_SELECTOR};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
@@ -20,7 +20,7 @@ impl Machine {
         setLightBit("linc_mode", false);
         log(&format!("First word of memory: {}", memory.read(0)));
         Self {
-            machine: PDP12::new(Default::default(), memory),
+            machine: PDP12::default(),
         }
     }
 
@@ -40,7 +40,7 @@ impl Machine {
 
     #[wasm_bindgen]
     pub fn examine(&mut self, lsw: u16, step: bool) {
-        let _ = self.machine.change_state(|mut state, memory| {
+        let _ = self.machine.change_state(|mut state, memory, devices| {
             if !step {
                 state.mra = lsw & MASK_12BIT;
             } else {
@@ -55,7 +55,7 @@ impl Machine {
 
     #[wasm_bindgen]
     pub fn fill(&mut self, lsw: u16, rsw: u16, step: bool) {
-        let _ = self.machine.change_state(|mut state, memory| {
+        let _ = self.machine.change_state(|mut state, memory, devices| {
             state.lsw = lsw & MASK_12BIT;
             state.rsw = rsw & MASK_12BIT;
             if !step {
@@ -71,12 +71,13 @@ impl Machine {
     }
 
     #[wasm_bindgen]
-    pub fn key_do(&mut self, lsw: u16) {
+    pub fn key_do(&mut self, lsw: u16, rsw: u16) {
         let instr = lsw & MASK_12BIT;
-        let _ = self.machine.change_state(|mut state, memory| {
+        let _ = self.machine.change_state(|mut state, memory, devices| {
             state.mri = instr;
             state.lsw = instr;
-            let state = pdp12_emulator::eight_mode::exec(instr, state, memory);
+            state.rsw = rsw & MASK_12BIT;
+            let state = pdp12_emulator::eight_mode::exec(instr, state, memory, devices);
             setLightBit("link", state.link);
             setLightBits("acc", state.acc);
             setLightBits("instrReg", state.mri);
@@ -87,6 +88,22 @@ impl Machine {
     #[wasm_bindgen]
     pub fn dump_memory(&self) -> *const u16 {
         self.machine.memory.dump()
+    }
+
+    #[wasm_bindgen]
+    pub fn set_key(&mut self, key: u8) {
+        self.machine.operate_device(KEYBOARD_SELECTOR, |keyboard: &mut Keyboard| {
+            keyboard.set_key(key)
+        }).unwrap();
+    }
+
+    #[wasm_bindgen]
+    pub fn get_char(&mut self) -> Option<u8> {
+        let mut value = None;
+        self.machine.operate_device(TTY_SELECTOR, |tty: &mut Tty| {
+            value = tty.get_key();
+        }).unwrap();
+        value
     }
 }
 

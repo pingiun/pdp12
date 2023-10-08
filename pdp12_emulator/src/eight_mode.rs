@@ -1,13 +1,18 @@
-use crate::{consts::{MASK_MSDIGIT, MASK_12BIT}, emulate::State, memory::{Memory, decode_addr}};
+use crate::{
+    consts::{MASK_12BIT, MASK_MSDIGIT},
+    devices::Devices,
+    emulate::State,
+    memory::{decode_addr, Memory},
+};
 
 #[must_use]
-pub fn exec(instr: u16, state: State, memory: &mut Memory) -> State {
+pub fn exec(instr: u16, state: State, memory: &mut Memory, devices: &mut Devices) -> State {
     let op_addr = decode_addr(instr, state.pc, memory);
     let msdigit = instr & MASK_MSDIGIT;
     if msdigit == 0b0000_000_000_000_000 {
-        and(op_addr, state, &memory)
+        and(op_addr, state, memory)
     } else if msdigit == 0b0000_001_000_000_000 {
-        tad(op_addr, state, &memory)
+        tad(op_addr, state, memory)
     } else if msdigit == 0b0000_011_000_000_000 {
         dca(op_addr, state, memory)
     } else if msdigit == 0b0000_101_000_000_000 {
@@ -19,7 +24,7 @@ pub fn exec(instr: u16, state: State, memory: &mut Memory) -> State {
     } else if msdigit == 0b0000_111_000_000_000 {
         op(instr, state)
     } else if msdigit == 0b0000_110_000_000_000 {
-        iot(instr, state)
+        iot(instr, state, memory, devices)
     } else {
         unreachable!()
     }
@@ -180,10 +185,12 @@ pub fn group2_op(instr: u16, state: State) -> State {
     state
 }
 
-pub fn iot(instr: u16, state: State) -> State {
-    if instr & 0b0000_000_111_111_000 == 0b0000_000_000_011_000 {
-        // Keyboard input (TTI)
-
+pub fn iot(instr: u16, state: State, memory: &mut Memory, devices: &mut Devices) -> State {
+    let selector = (instr & 0b0000_000_111_111_000) >> 3;
+    let device = devices[selector as usize].as_mut();
+    if let Some(device) = device {
+        device.iot(instr, state, memory)
+    } else {
+        state
     }
-    state
 }

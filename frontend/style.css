@@ -1,35 +1,135 @@
 body {
-    background-color: rgb(28, 28, 28);
-    padding: 0;
-    margin: 0;
+  background-color: #fcf0c5;
+  padding: 0;
+  margin: 0;
+}
+
+#decal {
+  margin-bottom: -4px;
+}
+
+#between-decal {
+  background: rgb(233, 233, 210);
+  background: linear-gradient(
+    0deg,
+    rgba(233, 233, 210, 1) 0%,
+    rgba(255, 255, 230, 1) 100%
+  );
+  height: 10px;
 }
 
 input[type="checkbox"] {
-    appearance: none;
-    background-repeat: no-repeat;
-    aspect-ratio: 191/353;
-    width: 100%;
+  appearance: none;
+  background-repeat: no-repeat;
+  aspect-ratio: 191/353;
+  width: 100%;
 }
 
 .lightgreen {
-    background-image: url(resources/lightgreen-off.svg);
+  background-image: url(resources/lightgreen-off.svg);
 }
 
 .lightgreen:checked {
-    background-image: url(resources/lightgreen-on.svg);
+  background-image: url(resources/lightgreen-on.svg);
 }
 
 .darkgreen {
-    background-image: url(resources/darkgreen-off.svg);
+  background-image: url(resources/darkgreen-off.svg);
 }
 
 .darkgreen:checked {
-    background-image: url(resources/darkgreen-on.svg);
+  background-image: url(resources/darkgreen-on.svg);
 }
 
-.row {
-    padding-right: .8%;
-    display: grid;
-    grid-template-columns: repeat(32, 1fr);
-    background-color: rgb(233, 233, 210);
+.keys-row {
+  padding-right: 0.8%;
+  padding-bottom: 10px;
+  display: grid;
+  grid-template-columns: repeat(32, 1fr);
+  background-color: rgb(233, 233, 210);
+}
+
+.tty-section {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+}
+
+.printer-section {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+}
+
+div.tty {
+  background-color: #fcf0c5;
+  width: 100%;
+}
+
+#tty33 {
+  border-bottom-right-radius: 20px;
+  border-bottom-left-radius: 20px;
+  border-left: 1px solid black;
+  border-right: 1px solid black;
+  border-bottom: 1px solid black;
+  padding: 10px;
+}
+
+.printer {
+  width: 100%;
+  border: solid 8px #707070;
+  background-color: rgb(23, 23, 23);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  max-width: 800px;
+}
+
+.printer-inner {
+  background-color: #fefde5;
+  padding-left: 20px;
+  padding-right: 20px;
+  height: 10rem;
+  overflow: scroll;
+}
+
+.paper {
+  margin: 0;
+  width: 78ch;
+  min-height: calc(100% - 40px);
+  border-left: 5px dotted black;
+  border-right: 5px dotted black;
+  padding: 20px;
+  vertical-align: bottom;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.paper > pre {
+  margin: 0px;
+}
+
+.paper-shadow-bottom {
+  height: 15px;
+  width: 100%;
+  position: absolute;
+  bottom: 0px;
+  z-index: 1;
+  background: linear-gradient(
+    0deg,
+    rgb(28, 28, 28, 0.4) 0%,
+    rgba(255, 255, 230, 0) 100%
+  );
+}
+
+.paper-shadow-top {
+  height: 15px;
+  width: 100%;
+  position: absolute;
+  top: 0px;
+  z-index: 1;
 }

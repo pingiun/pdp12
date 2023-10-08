@@ -25,7 +25,3 @@ wee_alloc = { version = "0.4.5", optional = true }
 
 pdp12_emulator = { path = "../pdp12_emulator" }
 futures = "0.3.25"
-
-[profile.release]
-# Tell `rustc` to optimize for small code size.
-opt-level = "s"
