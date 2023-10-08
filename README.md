@@ -1,5 +1,7 @@
 # pdp12 emulator for the web
 
+[![Netlify Status](https://api.netlify.com/api/v1/badges/7fb86966-02a1-4927-9911-83fd9c81267b/deploy-status)](https://pdp12.pingiun.com/)
+
 ![image](https://user-images.githubusercontent.com/1576660/203506524-54a6beaf-112b-4d48-bd27-c44aa324995e.png)
 
 I'm building a PDP-12 emulator and this is my current UI. The top decal/light panel is an SVG. The lights on the top panel are turned on by switching out one gradient url with another using Javascript.
